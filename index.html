@@ -9,7 +9,8 @@
     <script src="js/underscore.js"></script>
     <!-- bootstrap 3.3.6 -->
     <link href="css/bootstrap.css" rel="stylesheet">
-    <link href="css/bootstrap-theme.css" rel="stylesheet">
+    <!--<link href="css/bootstrap-theme.css" rel="stylesheet">-->
+    <link href="css/bootstrap.min_8.css" rel="stylesheet">
     <script src="js/bootstrap.js"></script>
     <!-- angular 1.5.5 -->
     <script src="js/angular.js"></script>
@@ -35,8 +36,8 @@
     </div>
 
     <!-- algorithm selection and settings -->
-    <div id="algorithm-set" class="col-md-6" ng-show="level == 0">
-        <div class="panel panel-default">
+    <div id="algorithm-set" class="col-md-6 col-md-offset-3" ng-show="level == 0">
+        <div class="panel panel-primary">
             <div class="panel-heading">
                 <h3 class="panel-title">Algorithm</h3>
             </div>
@@ -65,24 +66,46 @@
     </div>
 
     <!-- process listing and process adder -->
-    <div id="process-list-set" class="col-md-6" ng-show="level == 1">
-        <div class="panel panel-default">
+    <div id="process-list-set" class="col-md-8" ng-show="level == 1">
+        <div class="panel panel-primary">
             <div class="panel-heading">
                 <h3 class="panel-title">Processes</h3>
             </div>
 
             <div class="panel-body">
-
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th ng-repeat="flag in selectedAlgorithm.func.processFlagsIn">{{ flag.name }}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat="prc in processes | orderBy:'id'">
+                        <td>{{ prc.id }}
+                            <button type="button" class="btn btn-xs btn-warning glyphicon glyphicon-remove"
+                                    ng-click="removeProcess(prc)"></button>
+                        </td>
+                        <td ng-repeat="flag in selectedAlgorithm.func.processFlagsIn">{{ prc[flag.flag] }}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
 
             <div class="panel-footer">
-
+                <button type="button" class="btn btn-primary" ng-click="finishAddingProcesses()"
+                        ng-disabled="processes.length == 0">
+                    Finish Adding Processes
+                </button>
+                <button type="button" class="btn btn-danger" ng-click="clearProcesses()">
+                    Clear All
+                </button>
             </div>
         </div>
     </div>
 
-    <div id="process-create" class="col-md-6" ng-show="level == 1">
-        <div class="panel panel-default">
+    <div id="process-create" class="col-md-4" ng-show="level == 1">
+        <div class="panel panel-info">
             <div class="panel-heading">
                 <h3 class="panel-title">Create Process</h3>
             </div>
@@ -109,35 +132,114 @@
     </div>
 
     <!-- simulator settings -->
-    <div id="simulator-set" class="col-md-6" ng-show="level == 2">
-        <div class="panel panel-default">
+    <div id="simulator-set" class="col-md-4 col-md-offset-4" ng-show="level == 2">
+        <div class="panel panel-primary">
             <div class="panel-heading">
                 <h3 class="panel-title">Simulator settings</h3>
             </div>
 
             <div class="panel-body">
-
+                <label>Speed
+                    <input type="text" class="form-control" placeholder="Speed of the simulator"
+                           ng-model="speed" required>
+                </label>
             </div>
 
             <div class="panel-footer">
-                <button type="button" class="btn btn-primary" ng-click="">Configure Simulator</button>
+                <button type="button" class="btn btn-primary" ng-click="createSimulator()" ng-disabled="!isValidSim()">
+                    Configure Simulator
+                </button>
             </div>
         </div>
     </div>
 
     <!-- simulator display and jit process add -->
-    <div id="simulator-view" class="col-md-6" ng-show="level == 3">
-        <div class="panel panel-primary">
+    <div id="simulator-view" class="col-md-12" ng-show="level == 3">
+        <div class="panel panel-success">
             <div class="panel-heading">
                 <h3 class="panel-title">Simulator</h3>
             </div>
 
             <div class="panel-body">
+                <h3>Dispatcher</h3>
+                <ul class="list-group">
+                    <li ng-repeat="flag in selectedAlgorithm.func.algorithmFlagsIn" class="list-group-item">
+                        <label class="list-group-item-heading">{{ flag.name }}:</label>
+                        <span class="list-group-item-text">{{ simulator.scheduler[flag.flag] }}</span>
+                    </li>
+                    <li ng-repeat="flag in selectedAlgorithm.func.algorithmFlagsOut" class="list-group-item">
+                        <label class="list-group-item-heading">{{ flag.name }}:</label>
+                        <span class="list-group-item-text">{{ simulator.scheduler[flag.flag] }}</span>
+                    </li>
+                </ul>
 
+                <h3>Waiting...</h3>
+                <table class="table table-responsive">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th ng-repeat="flag in selectedAlgorithm.func.processFlagsIn">{{ flag.name }}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat="prc in simulator.getFutureQueue()">
+                        <td>{{ prc.id }}</td>
+                        <td ng-repeat="flag in selectedAlgorithm.func.processFlagsIn">{{ prc[flag.flag] }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <h3>Running and Ready</h3>
+                <table class="table table-responsive">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th ng-repeat="flag in selectedAlgorithm.func.processFlagsIn">{{ flag.name }}</th>
+                        <th ng-repeat="flag in selectedAlgorithm.func.processFlagsOut">{{ flag.name }}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat="prc in simulator.getQueue()">
+                        <td>{{ prc.id }}
+                            <button type="button" class="btn btn-xs btn-danger glyphicon glyphicon-remove"
+                                    ng-click="simulator.killProcess(prc)"></button>
+                        </td>
+                        <td ng-repeat="flag in selectedAlgorithm.func.processFlagsIn">{{ prc[flag.flag] }}</td>
+                        <td ng-repeat="flag in selectedAlgorithm.func.processFlagsOut">{{ prc[flag.flag] }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <h3>Ended</h3>
+                <table class="table table-responsive">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th ng-repeat="flag in selectedAlgorithm.func.processFlagsIn">{{ flag.name }}</th>
+                        <th ng-repeat="flag in selectedAlgorithm.func.processFlagsOut">{{ flag.name }}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat="prc in simulator.getEndedQueue()">
+                        <td>{{ prc.id }}</td>
+                        <td ng-repeat="flag in selectedAlgorithm.func.processFlagsIn">{{ prc[flag.flag] }}</td>
+                        <td ng-repeat="flag in selectedAlgorithm.func.processFlagsOut">{{ prc[flag.flag] }}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
 
             <div class="panel-footer">
-
+                <div class="btn-group">
+                    <button type="button" class="btn btn-default glyphicon glyphicon-step-backward"
+                            ng-click="simulator.back()"></button>
+                    <button type="button" class="btn btn-success glyphicon glyphicon-play"
+                            ng-click="autoplay()"></button>
+                    <button type="button" class="btn btn-info glyphicon glyphicon-pause"
+                            ng-click="pause()"></button>
+                    <button type="button" class="btn btn-default glyphicon glyphicon-step-forward"
+                            ng-click="simulator.tick()"></button>
+                </div>
             </div>
         </div>
     </div>

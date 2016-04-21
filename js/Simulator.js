@@ -45,10 +45,11 @@ var Simulator = function (scheduler, delay, initialProcesses) {
     }
 
     this.tick = function () {  // single step forward
-        if (this.initialProcesses.length > 0 && this.initialProcesses[0].arrival == this.scheduler.time) {
+        while (this.initialProcesses.length > 0 && this.initialProcesses[0].arrival == this.scheduler.time) {
             this.scheduler.queue.push(this.initialProcesses.shift());  // move from initial to ready queue
-        }
+        }  // we have to all processes arrived now
         this.saveState();  // when saving, save processes that are added now
+        // console.log(this.tape);  // TODO remove
         this.scheduler.tick();  // clock pulse
     };
 
@@ -66,7 +67,7 @@ var Simulator = function (scheduler, delay, initialProcesses) {
     };
 
     this.killProcess = function (process) {  // kill a process which is currently in the ready queue
-        delete this.scheduler.queue[this.scheduler.queue.indexOf(process)];
+        this.scheduler.queue.splice(this.scheduler.queue.indexOf(process), 1);
     };
 
     this.algorithmArgs = [].concat(  // setup algorithm args for saving state
@@ -141,7 +142,7 @@ var Simulator = function (scheduler, delay, initialProcesses) {
             for (var r = 0; r < this.scheduler.endedQueue.length; r++) {
                 var element = this.scheduler.endedQueue[r];
                 if (element.id == process.id) {
-                    delete this.scheduler.endedQueue[this.scheduler.endedQueue.indexOf(element)];
+                    this.scheduler.endedQueue.splice(this.scheduler.endedQueue.indexOf(element), 1);
                 }
             }
         }

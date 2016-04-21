@@ -1,4 +1,4 @@
-app.controller('ctrl', function ($scope, $injector) {
+app.controller('ctrl', function ($scope, $interval) {
     $scope.level = 0;  // track current level of input to display the panel needed
 
     // level 0 /////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -34,9 +34,10 @@ app.controller('ctrl', function ($scope, $injector) {
         var scheduler = new Scheduler($scope.selectedAlgorithm.func);
         var args = [];
         for (var aci = 0; aci < $scope.algorithmParameters.length; aci++) {
-            args.push($scope.algorithmArguments[$scope.algorithmParameters[aci].flag]);
+            args.push(Number($scope.algorithmArguments[$scope.algorithmParameters[aci].flag]));
         }
         scheduler.algorithm.apply(scheduler, args);
+        console.log(args);
         $scope.scheduler = scheduler;
         $scope.level = 1;  // increase level
     };
@@ -45,7 +46,7 @@ app.controller('ctrl', function ($scope, $injector) {
             return _.isFinite(val) && val >= 0;
         })
     };
-    $scope.scheduler = null;  // IMPORTANT FOR THE NEXT LEVEL!
+    $scope.scheduler = null;  // IMPORTANT FOR THE FINAL OUTPUT!
 
     // level 1 /////////////////////////////////////////////////////////////////////////////////////////////////////////
     $scope.processParameters = $scope.selectedAlgorithm.func.processFlagsIn;
@@ -62,12 +63,51 @@ app.controller('ctrl', function ($scope, $injector) {
     $scope.isValidProcess = function () {
         return _.every(_.keys($scope.processArguments), function (key) {
             var val = $scope.processArguments[key];
-            return (_.isFinite(val) && val >= 0) || key == 'name';  // name may not be a number
+            return (_.isFinite(val) && val >= 0) || (key == 'name' && val);  // name may not be a number
         })
     };
-    $scope.processes = [];
+    $scope.processes = [];  // IMPORTANT FOR THE FINAL OUTPUT!
+    $scope.maxProcessId = 0;
     $scope.addProcess = function () {
-        $scope.processes.push();
+        $scope.processArguments.id = ++$scope.maxProcessId;  // this is an internal flag
+        _.forEach($scope.selectedAlgorithm.func.processFlagsOut, function (flag) {
+            $scope.processArguments[flag.flag] = 0;  // make all out flags zero
+        });
+        $scope.processes.push($scope.processArguments);
+        $scope.clearProcess();
+    };
+    $scope.clearProcesses = function () {
+        $scope.processes = [];
+        $scope.maxProcessId = 0;
+    };
+    $scope.removeProcess = function (prc) {
+        $scope.processes.splice($scope.processes.indexOf(prc), 1);
+    };
+    $scope.finishAddingProcesses = function () {
+        $scope.level = 2;
+    };
+
+    // level 2 /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    $scope.speed = 1;
+    $scope.isValidSim = function () {
+        return _.isFinite($scope.speed) && $scope.speed > 0;
+    };
+    $scope.simulator = null;  // IMPORTANT !
+    $scope.createSimulator = function () {
+        $scope.simulator = new Simulator($scope.scheduler, 1000 / $scope.speed, $scope.processes);
+        $scope.level = 3;
+    };
+
+    // level 3 /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    $scope.intervalHandler = null;
+    $scope.play = function () {
+        $scope.simulator.tick.apply($scope.simulator);
+    };
+    $scope.autoplay = function () {
+        $scope.intervalHandler = $interval($scope.play, $scope.simulator.delay);
+    };
+    $scope.pause = function () {
+        $interval.cancel($scope.intervalHandler);
     }
 
 });
