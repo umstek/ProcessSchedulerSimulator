@@ -4,7 +4,8 @@ var roundRobin = function (quantum, switchTime) {
     this.quantum = quantum;
     this.switchTime = switchTime;
 
-    this.switchAt = 0;
+    // run a process if available instead of dispatcher at the beginning 
+    this.switchAt = (quantum + 1) % (quantum + switchTime);
     this.time = 0;
     this.processEnded = false;
 
@@ -24,12 +25,14 @@ var roundRobin = function (quantum, switchTime) {
                 } else {  // perform task switching
                     this.queue.push(this.queue.shift());
                 }
-            } else if (this.time % (this.quantum + this.switchTime) - this.switchAt < this.switchTime) {
-                // Extra time before a switch
             } else if (this.processEnded) {  // process ended in the previous round
                 this.endedQueue.push(this.queue.shift());  // remove ended process
                 this.processEnded = false;  // clear the flag
-                this.switchAt = this.time % (this.quantum + this.switchTime);  // restart switch timer
+                // restart switch timer - we're actually using the last unit of switch time for switching
+                this.switchAt = this.time % (this.quantum + this.switchTime);
+            } else if ((this.time - this.switchAt + this.quantum + this.switchTime)
+                % (this.quantum + this.switchTime) < this.switchTime) {
+                // we don't have to do anything
             } else {  // normally run the process - this is not a switching time
                 if (this.queue[0].time == 0) {  // process is running for the first time
                     this.queue[0].service = this.time - 1;  // set the actual start time of the process (add -1)

@@ -100,14 +100,22 @@ app.controller('ctrl', function ($scope, $interval) {
 
     // level 3 /////////////////////////////////////////////////////////////////////////////////////////////////////////
     $scope.intervalHandler = null;
-    $scope.play = function () {
+    $scope.playing = false;
+    $scope.playOnce = function () {
         $scope.simulator.tick.apply($scope.simulator);
+
     };
     $scope.autoplay = function () {
-        $scope.intervalHandler = $interval($scope.play, $scope.simulator.delay);
+        if (!$scope.playing) {
+            $scope.intervalHandler = $interval($scope.playOnce, $scope.simulator.delay);
+            $scope.playing = true;
+        }
     };
     $scope.pause = function () {
-        $interval.cancel($scope.intervalHandler);
+        if ($scope.playing) {  // we can only pause if playing
+            $interval.cancel($scope.intervalHandler);
+            $scope.playing = false;
+        }
     }
 
 });
