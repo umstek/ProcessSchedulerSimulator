@@ -43,7 +43,7 @@ app.controller('ctrl', function ($scope, $interval) {
     };
     $scope.isValidScheduler = function () {
         return _.every(_.values($scope.algorithmArguments), function (val) {
-            return _.isFinite(val) && val >= 0;
+            return _.isFinite(val) && val >= 0 && val % 1 == 0;
         })
     };
     $scope.scheduler = null;  // IMPORTANT FOR THE FINAL OUTPUT!
@@ -116,7 +116,42 @@ app.controller('ctrl', function ($scope, $interval) {
             $interval.cancel($scope.intervalHandler);
             $scope.playing = false;
         }
-    }
+    };
+
+    $scope.addProcessJit = function () {
+        $scope.processArguments.id = ++$scope.maxProcessId;
+        _.forEach($scope.selectedAlgorithm.func.processFlagsOut, function (flag) {
+            $scope.processArguments[flag.flag] = 0;  // make all out flags zero
+        });
+        $scope.simulator.createProcess($scope.processArguments);
+        $scope.clearProcess();
+    };
+
+    $scope.timelineColors = ['danger', 'warning', 'info', 'success'];
+
+    $scope.getTransition = function (index) {
+        var currently = null;
+        if (index < $scope.simulator.tape.length) {
+            currently = $scope.simulator.tape[index].algorithm.currently;  // t = t
+        } else {
+            currently = $scope.simulator.scheduler.currently;
+        }
+
+        if (currently == 'idle') {
+
+            return 'active';
+        }
+        else if (currently == 'waste') {
+            return 'progress-bar-striped active';
+        }
+        else if (_.isFinite(currently)) {
+            return 'progress-bar-' + $scope.timelineColors[currently % 4];
+        }
+        else {
+            return "";
+        }
+
+    };
 
 });
 // TODO use underscore.js to simplify the above expressions

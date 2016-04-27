@@ -4,4 +4,5 @@ var Scheduler = function (algorithm) {
     this.queue = [];  // there must be a queue
     this.endedQueue = [];  // stores the finished processes
     this.tick = null;  // there must be a tick function to increase the clock
+    this.currently = 'idle';
 };

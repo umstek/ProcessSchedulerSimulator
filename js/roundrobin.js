@@ -1,37 +1,46 @@
 var roundRobin = function (quantum, switchTime) {
-    // time quantum and the time required for context switching
     'use strict';
+
+    // set the time quantum and the time required for context switching
     this.quantum = quantum;
     this.switchTime = switchTime;
 
-    // run a process if available instead of dispatcher at the beginning 
-    this.switchAt = (quantum + 1) % (quantum + switchTime);
+    // run a process if available instead of dispatcher at the beginning
+    // it's zero = 0 when the dispatcher takes no time to switch
+    this.switchAt = this.switchTime > 0 ? (quantum + 1) % (quantum + switchTime) : 0;
     this.time = 0;
     this.processEnded = false;
 
-    this.tick = function () {
+    this.tick = function () {  // happens in a single unit of time
         this.time += 1;  // increase time
 
         // there should be some processes to run, otherwise return the same this.queue given
         if (this.queue.length < 1) {
+            // if idle, dispatcher has enough time - it should start the next process as soon as it arrives
+            this.switchAt = (this.time) % (this.quantum + this.switchTime);
+            this.currently = 'idle';
             return;
         }
 
         if (this.switchTime > 0) {  // dispatcher takes time to switch
             if (this.time % (this.quantum + this.switchTime) == this.switchAt) {  // switching needed
-                if (this.processEnded) {  // we only have to remove if any ended processes
+                if (this.processEnded) {  // we only have to remove one ended process
                     this.endedQueue.push(this.queue.shift());  // remove ended process
+                    this.currently = 'waste';
                     this.processEnded = false;  // clear the flag
                 } else {  // perform task switching
+                    this.currently = 'waste';
                     this.queue.push(this.queue.shift());
                 }
             } else if (this.processEnded) {  // process ended in the previous round
                 this.endedQueue.push(this.queue.shift());  // remove ended process
                 this.processEnded = false;  // clear the flag
+                this.currently = 'waste';
                 // restart switch timer - we're actually using the last unit of switch time for switching
                 this.switchAt = this.time % (this.quantum + this.switchTime);
             } else if ((this.time - this.switchAt + this.quantum + this.switchTime)
                 % (this.quantum + this.switchTime) < this.switchTime) {
+                this.currently = 'waste';
                 // we don't have to do anything
             } else {  // normally run the process - this is not a switching time
                 if (this.queue[0].time == 0) {  // process is running for the first time
@@ -40,6 +49,7 @@ var roundRobin = function (quantum, switchTime) {
                 }
 
                 this.queue[0].time += 1;  // run the process
+                this.currently = "" + this.queue[0].id;  // running state
 
                 if (this.queue[0].time == this.queue[0].execution) {  // process has just ended
                     this.queue[0].end = this.time;  // set the time when the process has ended
@@ -52,7 +62,8 @@ var roundRobin = function (quantum, switchTime) {
                 this.queue[0].wait = this.queue[0].service - this.queue[0].arrival;
             }
 
-            this.queue[0].time += 0;
+            this.queue[0].time += 1;
+            this.currently = "" + this.queue[0].id;  // running state
 
             if (this.queue[0].time == this.queue[0].execution) {  // process has finished execution
                 this.queue[0].end = this.time;
@@ -109,5 +120,5 @@ roundRobin.algorithmFlagsIn = [
         initial: "1"
     }
 ];
-roundRobin.algorithmInternal = [{flag: 'switchAt'}, {flag: 'processEnded'}];
+roundRobin.algorithmInternal = [{flag: 'switchAt'}, {flag: 'processEnded'}, {flag: 'currently'}];
 roundRobin.algorithmFlagsOut = [{flag: 'time', name: 'Time'}];
